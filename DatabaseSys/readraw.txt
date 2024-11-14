@@ -1,0 +1,65 @@
+void readRawDisk(const std::string& diskPath) {
+
+    // Calculate the required length for the wide-character string buffer
+    size_t len = diskPath.length() + 1; // +1 for the null terminator
+
+    // Allocate memory for the wide-character string
+    wchar_t* wDiskPath = new wchar_t[len];
+
+    // Use mbstowcs_s to safely convert the multibyte string to a wide-character string
+    size_t convertedChars = 0;
+    errno_t err = mbstowcs_s(&convertedChars, wDiskPath, len, diskPath.c_str(), _TRUNCATE);
+
+    if (err != 0) {
+        std::cerr << "Error converting string to wide characters.\n";
+        delete[] wDiskPath;
+        return;
+    }
+
+    // Open the disk device
+    HANDLE hDevice = CreateFile(wDiskPath, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, 0, NULL);
+
+    if (hDevice == INVALID_HANDLE_VALUE) {
+        std::cerr << "Error opening disk device.\n";
+        delete[] wDiskPath;
+        return;
+    }
+
+    const size_t sectorSize = 512;
+    char buffer[sectorSize];
+    DWORD bytesRead;
+
+    // Read one sector (512 bytes)
+    BOOL result = ReadFile(hDevice, buffer, sectorSize, &bytesRead, NULL);
+    if (!result) {
+        std::cerr << "Error reading from disk.\n";
+        CloseHandle(hDevice);
+        delete[] wDiskPath;
+        return;
+    }
+
+    // Output the raw sector data as hexadecimal
+    for (size_t i = 0; i < bytesRead; ++i) {
+        std::cout << std::hex << (unsigned int)(unsigned char)buffer[i] << " ";
+    }
+
+    // Clean up
+    CloseHandle(hDevice);
+    delete[] wDiskPath;
+}
+
+
+                          //  Dimensions.push_back(std::stof(val));
+                            try { // Attempt to convert the string to a float 
+                            float number = std::stof(val);
+                            std::cout << "Converted number: " << number << std::endl;
+                            } catch (const std::invalid_argument& e) { 
+                                std::cerr << "Error: Invalid argument - the string does not represent a valid float." << std::endl; 
+                            } catch (const std::out_of_range& e) {
+                                std::cerr << "Error: Out of range - the string represents a float that is out of range." << std::endl; 
+                            } catch (...) { 
+                                std::cerr << "Error: An unknown error occurred during the conversion." << std::endl; 
+                            }
+                           // cout << val;
+                            val = "";
