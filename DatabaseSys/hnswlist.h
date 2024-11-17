@@ -296,7 +296,7 @@ public:
 			}
 			cout << answers[id] << endl;
 		}*/
-	//	vector<string> answers = {"test"};
+		vector<string> answers = {"test"};
 		cout << "Getting text from node " << curNode->id << endl;
 		for (int i = 0; i < curNode->textLength; i++) {
 			cout << curNode->text[i];
