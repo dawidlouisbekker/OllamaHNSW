@@ -22,7 +22,6 @@ private:
 	int max_level;
 	struct Node {
 		int id;
-		float* vectorStart;
 		int textLength;
 		char* text;
 		vector<vector<int>> neighbors;
@@ -35,8 +34,7 @@ private:
 			}
 		}
 
-		Node(float* VecStart, int ID, int max_level) :  vectorStart(nullptr), textLength(0), text(nullptr), neighbors(max_level + 1) {  
-			vectorStart = VecStart;
+		Node(int ID, int max_level) :  textLength(0), text(nullptr), neighbors(max_level + 1) {  
 			id = ID;
 		}
 
@@ -55,6 +53,7 @@ private:
 	int key = 0;
 	std::atomic<bool> stopFlag{ false };
 	std::vector<std::shared_ptr<Node>> nodes;
+	std::vector<float*> points;
 	std::vector<std::thread> threads;
 	
 
@@ -77,20 +76,20 @@ private:
 		auto start = std::chrono::high_resolution_clock::now();
 		int i = 0;
 		std::future<float> vec1Future = CalculateEuclideanNormsAsync(query, vecSize);
-		std::future<float> vec2Future = CalculateEuclideanNormsAsync(query, vecSize);
+		std::future<float> vec2Future = CalculateEuclideanNormsAsync(points[neighbourPos], vecSize);
 
 
 		for (; i + 3 < vecSize; i += 4) {
 			__m128 v1 = _mm_loadu_ps(query + i);
-			__m128 v2 = _mm_loadu_ps(nodes[neighbourPos]->vectorStart + i);
+			__m128 v2 = _mm_loadu_ps(points[neighbourPos] + i);
 			result = _mm_add_ps(result, _mm_dp_ps(v1, v2, 0xF1));
 		}
 		float dotProduct = _mm_cvtss_f32(result);
 		//cout << "dot product: " << dotProduct << endl;
-		float finalRes = (dotProduct / (vec1Future.get() * vec2Future.get()));
+		float finalRes =  (dotProduct / (vec1Future.get() * vec2Future.get()));
 		//cout << finalRes << endl;
 		auto end = std::chrono::high_resolution_clock::now();
-		cout << "result: " << finalRes << endl;
+		//cout << "result: " << finalRes << endl;
 		std::chrono::duration<double> elapsed = end - start;
 		return finalRes;
 		//	SearchLevel()
@@ -102,7 +101,6 @@ private:
 	std::shared_ptr<Node> searchLayer(float* query, std::shared_ptr<Node> curNode, int level) {
 		std::cout << "Searching layer " << level << " for node ID: " << curNode->id << std::endl;
 
-		// Ensure the current node has the given level
 		if (level >= curNode->neighbors.size()) {
 			std::cerr << "Error: Level " << level << " is out of range for node ID: " << curNode->id << std::endl;
 			return curNode;  // If the level is invalid, return the current node
@@ -119,8 +117,9 @@ private:
 					continue;
 				}
 				float dist_to_neighbor = CalculateNode(query, neighbor_id);   
+				cout << "Distance to level: " << level << " Node id:" << neighbor_id << endl;
 				if (dist_to_current == 0) {
-					dist_to_current = CalculateNode(query, neighbor_id);
+					dist_to_current = CalculateNode(query, curNode->id);
 				}
 				
 				if (dist_to_neighbor < dist_to_current) {
@@ -139,7 +138,8 @@ private:
 
 	void searchAndConnect(std::shared_ptr<Node>& newNode, int level) {
 		// Perform greedy search to find the closest node in the current level
-		auto nearest = searchLayer(newNode->vectorStart, entry_point, level);
+		cout << "new nde id: " << newNode->id;
+		auto nearest = searchLayer(points[newNode->id], entry_point, level);
 		// Connect neighbors
 		auto neighbors = selectNeighbors(reinterpret_cast<uintptr_t>(nearest.get()), newNode, level, m);
 		for (int n : neighbors) {
@@ -157,7 +157,7 @@ private:
 			if (nodes[i]->id == newNode->id) {
 				continue; 
 			}
-			float dist = CalculateNode(newNode->vectorStart, i);
+			float dist = CalculateNode(points[newNode->id], i);
 			candidateQueue.push({ dist, nodes[i]->id });
 			if (candidateQueue.size() > M) {
 				candidateQueue.pop();
@@ -202,20 +202,25 @@ public:
         cout << "file size:" << fileSize << endl;
         while (count < fileSize) {
 			int level = getRandomLevel();
+
+			float* vec = reinterpret_cast<float*>(reinterpret_cast<char*>(*pMap) + count);
+			points.push_back(vec);
+			auto newNode = std::make_shared<Node>(key, max_level);
+			key++;
 			if (level > current_level) {
 				current_level = level;
+			//	entry_point = newNode;
 			}
 			cout << "generated level: " << current_level << endl;
-			key++;
-			float* vec = reinterpret_cast<float*>(reinterpret_cast<char*>(*pMap) + count);
-			auto newNode = std::make_shared<Node>(vec, key, max_level);
+
+
 			count = count + sizeof(float) * VecSize;
 			newNode->textLength = *reinterpret_cast<int*>(reinterpret_cast<char*>(*pMap) + count);
 			cout << "text length: " << newNode->textLength << endl;
 			count = count + sizeof(int);
 
 			newNode->text = reinterpret_cast<char*>(reinterpret_cast<char*>(*pMap) + count);
-			newNode->id = key;
+	
 			//count = count + sizeof(char) * newNode->textLength;
 			for (int i = 0; i < newNode->textLength; i++) {
 
@@ -264,21 +269,30 @@ public:
 
 	std::vector<string> searchKNN(float* query, int k) {
 		auto curNode = entry_point;
-
+		int CurrentHighestId = 0;
+		int maxLevels;
+		int amntInMaxLevel;
+	/*	for (shared_ptr<Node> node : nodes) {
+			for (const auto& node_ptr : nodes) {
+				for (int i )
+				for (int neighbourIds : node->neighbors[])
+			}
+		}*/
 		for (int l = current_level; l >= 0; --l) {
+			cout << "Searching layer: " << current_level <<endl;
 			curNode = searchLayer(query, curNode, l);
 		}
 	//	cout << "moving on to search heap" << endl;
-		vector<int> ids = searchLayerWithHeap(query, curNode, 0, 1);
+		//vector<int> ids = searchLayerWithHeap(query, curNode, 0, 1);
 		
 		vector<string> answers;
-		for (int id : ids) {
+		/*for (int id : ids) {
 			int textSize = nodes[id]->textLength;
 			for (int i = 0; i < textSize; i++) {
 				answers[id][i] = nodes[id]->text[i];
 			}
 			cout << answers[id] << endl;
-		}
+		}*/
 	//	vector<string> answers = {"test"};
 		cout << "Getting text" << endl;
 		for (int i = 0; i < curNode->textLength; i++) {
@@ -288,9 +302,6 @@ public:
 
 		return answers;
 	}
-	
-
-	// Function to display all neighbors for a list of shared pointers to nodes
 
 
 
