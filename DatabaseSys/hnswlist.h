@@ -70,7 +70,7 @@ private:
 			}); 
 		}
 
-	float CalculateNode(float* query, int neighbourPos) { //Calculate cosine similarity aswell as organize level 0
+	float CalculateNode(float* query, int neighbourPos) { //Calculate cosine similarity 
 		__m128 result = _mm_setzero_ps();
 		auto start = std::chrono::high_resolution_clock::now();
 		int i = 0;
