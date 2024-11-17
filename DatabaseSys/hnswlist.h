@@ -288,7 +288,7 @@ public:
 	//	cout << "moving on to search heap" << endl;
 		//vector<int> ids = searchLayerWithHeap(query, curNode, 0, 1);
 		
-		vector<string> answers;
+	//	vector<string> answers;
 		/*for (int id : ids) {
 			int textSize = nodes[id]->textLength;
 			for (int i = 0; i < textSize; i++) {
