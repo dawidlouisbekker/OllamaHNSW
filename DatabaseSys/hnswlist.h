@@ -26,7 +26,6 @@ private:
 		int textLength;
 		char* text;
 		vector<vector<int>> neighbors;
-		vector<vector<float>> distances;
 		// Cleanup function
 		void CleanUp() {
 			// Free the dynamically allocated text
@@ -36,7 +35,7 @@ private:
 			}
 		}
 
-		Node(float* VecStart, int ID, int max_level) :  vectorStart(nullptr), textLength(0), text(nullptr), neighbors(max_level + 1) {      //NeighbourAddresses(nullptr)
+		Node(float* VecStart, int ID, int max_level) :  vectorStart(nullptr), textLength(0), text(nullptr), neighbors(max_level + 1) {  
 			vectorStart = VecStart;
 			id = ID;
 		}
@@ -62,18 +61,15 @@ private:
 
 
 	std::future<float> CalculateEuclideanNormsAsync(const float* vec, int vecSize) {
-		return std::async(std::launch::async, [vec, vecSize]() {
-			float result = 0.0f;
-			for (int i = 0; i < vecSize; i++) {
-				result += vec[i] * vec[i];
-			}
-			result = std::sqrt(result);  // Take the square root of the sum
-
-			std::cout << "Computed result inside async: " << std::setprecision(50) << result << std::endl;
-			cout << result;
-			return result;
-			});
-	}
+		return std::async(std::launch::async, [vec, vecSize]() { 
+		float result = 0.0f; 
+		for (int i = 0; i < vecSize; i++) 
+		{ result += vec[i] * vec[i]; } 
+		result = std::sqrt(result); 
+		std::cout << "Computed result inside async: " << std::setprecision(50) << result << std::endl;
+		std::cout << result; return result; 
+			}); 
+		}
 
 	float CalculateNode(float* query, int neighbourPos) { //Calculate cosine similarity aswell as organize level 0
 		__m128 result = _mm_setzero_ps();
@@ -122,19 +118,16 @@ private:
 					std::cerr << "Invalid neighbor ID: " << neighbor_id << std::endl;
 					continue;
 				}
-
-				// Compare distances to the query
 				float dist_to_neighbor = CalculateNode(query, neighbor_id);   
 				if (dist_to_current == 0) {
 					dist_to_current = CalculateNode(query, neighbor_id);
 				}
 				
-
-				// If the neighbor is closer, move to the neighbor node
 				if (dist_to_neighbor < dist_to_current) {
-					curNode = nodes[neighbor_id];  // Update the current node
+					curNode = nodes[neighbor_id]; 
+					cout << "improved " << endl;
 					improved = true;
-					break;  // Start from the new node
+					break;  
 				}
 			}
 		}
@@ -157,10 +150,30 @@ private:
 
 
 	std::vector<int> selectNeighbors(int nearest, std::shared_ptr<Node> newNode, int level, int M) {
-		// Select top-M nearest neighbors (pruned graph logic)
-		std::vector<int> result;
-		// Implement logic to select top-M closest nodes
-		return result;
+		std::priority_queue<std::pair<float, int>> candidateQueue;
+
+
+		for (int i = 0; i < nodes.size(); ++i) {
+			if (nodes[i]->id == newNode->id) {
+				continue; 
+			}
+			float dist = CalculateNode(newNode->vectorStart, i);
+			candidateQueue.push({ dist, nodes[i]->id });
+			if (candidateQueue.size() > M) {
+				candidateQueue.pop();
+			}
+		}
+
+		std::vector<int> neighbors;
+		while (!candidateQueue.empty()) {
+			neighbors.push_back(candidateQueue.top().second);
+			candidateQueue.pop();
+		}
+
+		// Reverse the list to have the closest neighbors at the front
+		std::reverse(neighbors.begin(), neighbors.end());
+
+		return neighbors;
 	}
 
 
@@ -176,7 +189,7 @@ private:
 public:
 
 
-
+	//while loop loops through (pointers) memory map in predefined manner. 
 	HNSW(LPVOID* &pMap,int VecSize,int EfConstruction ,size_t fileSize, int M, int maxLevel) : m(M), efConstruction(EfConstruction), vecSize(VecSize), max_level(maxLevel), current_level(0) {
 		rng.seed(std::random_device{}());
 		level_dist = std::uniform_real_distribution<>(0.0, 1.0);
@@ -189,29 +202,41 @@ public:
         cout << "file size:" << fileSize << endl;
         while (count < fileSize) {
 			int level = getRandomLevel();
-			cout << "generated level: " << level << endl;
+			if (level > current_level) {
+				current_level = level;
+			}
+			cout << "generated level: " << current_level << endl;
 			key++;
 			float* vec = reinterpret_cast<float*>(reinterpret_cast<char*>(*pMap) + count);
 			auto newNode = std::make_shared<Node>(vec, key, max_level);
 			count = count + sizeof(float) * VecSize;
 			newNode->textLength = *reinterpret_cast<int*>(reinterpret_cast<char*>(*pMap) + count);
+			cout << "text length: " << newNode->textLength << endl;
 			count = count + sizeof(int);
+
 			newNode->text = reinterpret_cast<char*>(reinterpret_cast<char*>(*pMap) + count);
 			newNode->id = key;
-			count = count + sizeof(char) * newNode->textLength;
+			//count = count + sizeof(char) * newNode->textLength;
+			for (int i = 0; i < newNode->textLength; i++) {
+
+				cout << newNode->text[i];
+				count = count + sizeof(char);
+				
+			}
 
 			nodes.push_back(newNode);
 			cout << "round: " << key << endl;
 			if (entry_point == nullptr) {
 				entry_point = newNode;
-				continue;
+				//continue;
 			}
 			for (int l = level; l >= 0; --l) {
+				cout << "Starter search" << endl;
 				searchAndConnect(newNode, l);
 			}
 
 			// Link the new node into the graph
-
+			cout << endl;
 
 			pos++;
         }
@@ -222,8 +247,6 @@ public:
 		// Iterate through each node in the vector of shared_ptrs
 		for (const auto& node_ptr : nodes) {
 			std::cout << "Node ID: " << node_ptr->id << std::endl;
-
-			// Iterate through each level of neighbors
 			for (int level = 0; level < node_ptr->neighbors.size(); ++level) {
 				std::cout << "  Level " << level << " neighbors: ";
 				if (node_ptr->neighbors[level].empty()) {
@@ -243,10 +266,10 @@ public:
 		auto curNode = entry_point;
 
 		for (int l = current_level; l >= 0; --l) {
-
 			curNode = searchLayer(query, curNode, l);
 		}
-		vector<int> ids = searchLayerWithHeap(query, curNode, 0, k);
+	//	cout << "moving on to search heap" << endl;
+		vector<int> ids = searchLayerWithHeap(query, curNode, 0, 1);
 		
 		vector<string> answers;
 		for (int id : ids) {
@@ -254,8 +277,14 @@ public:
 			for (int i = 0; i < textSize; i++) {
 				answers[id][i] = nodes[id]->text[i];
 			}
+			cout << answers[id] << endl;
 		}
 	//	vector<string> answers = {"test"};
+		cout << "Getting text" << endl;
+		for (int i = 0; i < curNode->textLength; i++) {
+			cout << curNode->text[i];
+		}
+		cout << "Returning answer" << endl;
 
 		return answers;
 	}
@@ -264,29 +293,45 @@ public:
 	// Function to display all neighbors for a list of shared pointers to nodes
 
 
+
 	std::vector<int> searchLayerWithHeap(float* query, std::shared_ptr<Node> startNode, int level, int k) {
-		// Multi-layer search with a priority queue
+
+		vector<int> CandidateIDs;
+		vector<float> CandidateDistance;
 		std::priority_queue<std::pair<float, int>> candidates;
 		std::unordered_set<int> visited;
+		CandidateIDs.push_back(startNode->id);
 		candidates.emplace(std::numeric_limits<float>::infinity(), startNode->id);
-
 		while (!candidates.empty()) {
 			auto top = candidates.top();
 			candidates.pop();
-
 			int cur = top.second;
 			visited.insert(cur);
-
+			cout << "visited inserted" << endl;
 			for (int neighbor : nodes[cur]->neighbors[level]) {
+				cout << neighbor << endl;
 				if (visited.count(neighbor) == 0) {
-					float d = CalculateNode(query, neighbor);
-					candidates.emplace(d, neighbor);
+					cout << "adding candidate" << endl;
+					float d = CalculateNode(query, neighbor - 1);
+					candidates.emplace(d, neighbor - 1);
+					//    cout << candidates[]
 				}
 			}
 		}
 
+		std::cout << "Current candidates in priority queue before exploring neighbors:" << std::endl;
+		std::priority_queue<std::pair<float, int>> tempQueue = candidates;  // Make a copy of the priority queue
+		while (!tempQueue.empty()) {
+			auto candidate = tempQueue.top();
+			std::cout << "Distance: " << candidate.first << ", Node ID: " << candidate.second << std::endl;
+			tempQueue.pop();
+		}
+
+		cout << "moving to results now" << endl;
 		std::vector<int> result;
-		for (int i = 0; i < k && !candidates.empty(); ++i) {
+
+		for (int i = 0; i < k && !visited.empty(); ++i) {
+			cout << "adding to result" << endl;
 			result.push_back(candidates.top().second);
 			candidates.pop();
 		}
@@ -310,12 +355,6 @@ public:
 		return;
 	}
 
-//	void ShowNeighbours0() {
-//		for (Node* node : hnswList) {
-//			node->ShowList0();
-//		}
-//	}
 
 }; 
-
 #endif 

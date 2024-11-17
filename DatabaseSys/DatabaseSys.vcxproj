@@ -138,9 +138,8 @@
     <ClInclude Include="hnswlist.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="data.txt" />
+    <Text Include="NeighbourRecords.txt" />
     <Text Include="embedding.txt" />
-    <Text Include="CosineSimilarity.asm" />
     <Text Include="MistralResponse.txt" />
     <Text Include="readraw.txt" />
     <Text Include="vectors.txt" />

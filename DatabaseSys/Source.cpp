@@ -48,11 +48,7 @@ private:
 
 std::string normalizeForJson(const std::string& input) {
     std::string output = input;
-
-    // Replace newlines and carriage returns with space
     output = std::regex_replace(output, std::regex("\r?\n"), " ");
-
-    // Escape double quotes and backslashes for JSON
     output = std::regex_replace(output, std::regex(R"(")"), "'");
     output = std::regex_replace(output, std::regex(R"(\\)"), R"(\\\\)");
 
@@ -251,12 +247,12 @@ private:
 //////Setfile before refrencing heap Directories Class
 class MemoryMap {
 public:
-    MemoryMap(int VecSize, Directories*& refDir, string& message, bool newModel = false) : vecSize(0), initialized(false), hFile(NULL), fileSize(0), hMapping(NULL), pMap(NULL) {
+    MemoryMap(int VecSize, shared_ptr<Directories> &refDir, string& message, bool newModel = false) : vecSize(0), initialized(false), hFile(NULL), fileSize(0), hMapping(NULL), pMap(NULL) {
         vecSize = VecSize;
         Dir = refDir;
     }
 
-    void GetHNSW(HNSW* &Hnsw ) {
+    void GetHNSW(shared_ptr<HNSW> &Hnsw ) {
         Hnsw = hnsw;
     }
 
@@ -343,7 +339,7 @@ public:
             cout << "failed";
             return false;
         }
-        hnsw = new HNSW(pMap, 768, 10, *fileSize, 5,5);
+        hnsw = make_shared<HNSW>(pMap, 768, 10, *fileSize, 5,5);
        // hnsw->ShowList();
       //  hnsw->ShowNeighbours0();
         return true;
@@ -354,8 +350,8 @@ public:
 
 
 private:
-    Directories* Dir;
- //   HttpHandler* httpHandler;
+    shared_ptr<Directories> Dir;
+ //   HttpHander* httpHandler;
     int vecSize;
     struct Node {
         int key;
@@ -365,7 +361,7 @@ private:
         vector<vector<int>> NeighbourKeys; //1D is the layer number, 2D is the keys for the neighbours which will be used to retieve the pointers of the start of the neighbours data entry
         vector<vector<int*>> neighborKeyPntrs;  //1D is the layer number, 2D is the pointer to neighbors (inside the the layer) embeddings start 
     };
-    HNSW* hnsw;
+    shared_ptr<HNSW> hnsw;
     HANDLE* hFile;
     DWORD* fileSize;
     HANDLE* hMapping;
@@ -375,7 +371,7 @@ private:
 
 class HttpHandler {
 public:
-    HttpHandler(int& Status, Directories* &refDir, const wchar_t* url = L"127.0.0.1", const int port = 11434) : hSession(nullptr), hConnect(nullptr), hRequest(nullptr), dwSize(nullptr), dwDownloaded(nullptr), bResults(nullptr), Url(L"127.0.0.1"), Port(0) {
+    HttpHandler(int& Status, shared_ptr<Directories> &refDir, const wchar_t* url = L"127.0.0.1", const int port = 11434) : hSession(nullptr), hConnect(nullptr), hRequest(nullptr), dwSize(nullptr), dwDownloaded(nullptr), bResults(nullptr), Url(L"127.0.0.1"), Port(0) {
         hSession = new HINTERNET;
       //  memMap = new MemoryMap();
         Dir = refDir;
@@ -407,7 +403,7 @@ public:
 
     int GetQueryEmbeddings(string text, string model, float* &vec) {
         auto start = std::chrono::high_resolution_clock::now();
-        cout << endl << endl << "here " << endl << endl;
+        cout << "Generating query context" << endl;
 
         const wchar_t* endpoint = L"/api/embed";
 
@@ -527,10 +523,6 @@ public:
 
                     if (BracketCount == 2 && buffer[i] != ' ' && buffer[i] != '[' && buffer[i] != ']') {      //&& buffer[i] != ' ' && buffer[i] != '[' && buffer[i] != ']'
                         if (buffer[i] == ',') {
-                            count++;
-                            if (count == 78 || count == 79 || count == 80) {
-                                cout << endl << val << endl;
-                            }
                             try {
                                 number = std::stof(val);
                                 // Dimensions.push_back(number);
@@ -579,7 +571,9 @@ public:
             delete[] buffer;
         } while (dwSize > 0);
 
-           
+        cout << "repnonse: " << endl;
+        cout << response << endl;
+        
         WinHttpCloseHandle(hRequest);
         WinHttpCloseHandle(hConnect);
         WinHttpCloseHandle(hSession);
@@ -591,7 +585,7 @@ public:
         std::chrono::duration<double> elapsed = end - start;
 
         // Output the elapsed time in seconds
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds." << std::endl;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds." << std::endl << endl;
 
         return 1;
     }
@@ -800,8 +794,8 @@ public:
 
 
 private:
-    Directories* Dir;
-    MemoryMap* memMap;
+    shared_ptr<Directories> Dir;
+    shared_ptr<MemoryMap> memMap;
     void FreeRequestHeap() {
 
         if (hRequest) {
@@ -859,7 +853,7 @@ private:
 class PDFReader {
 public:
 
-    PDFReader(Directories* &dir) : httpHandler(nullptr), Dir(nullptr) {
+    PDFReader(shared_ptr<Directories> &dir) : httpHandler(nullptr), Dir(nullptr) {
         Dir = dir;
         int status;
         cout << "Here";
@@ -1092,7 +1086,7 @@ public:
     }
 private:
     HMODULE hModule;
-    Directories* Dir;
+    shared_ptr<Directories> Dir;
     HttpHandler* httpHandler;
 };
 
@@ -1106,7 +1100,7 @@ public:
 
     void CreateHNSW() {
         string message ="";
-        memMap = new MemoryMap(modelVecSize,Dir,message);
+        memMap = make_shared<MemoryMap>(modelVecSize,Dir,message);
         cout << message;
         bool result = memMap->MapFile(message);
         if (result == false) {
@@ -1116,6 +1110,7 @@ public:
         memMap->CreateHNSW(message);
         cout << message;
         memMap->GetHNSW(hnsw);
+        hnsw->DisplayNeighbors();
 
     }
 
@@ -1123,11 +1118,16 @@ public:
         float* vec;
         vec = new float[modelVecSize];
         httpHandler->GetQueryEmbeddings(text, *model ,vec);
-        hnsw->DisplayNeighbors();
-        vector<string> answer = hnsw->searchKNN(vec, 3);
-        for (string ans : answer) {
+        //hnsw->DisplayNeighbors();
+        vector<string> Answer = hnsw->searchKNN(vec, 1);
+        if (Answer.size() == 0) {
+            cout << "Size is 0" << endl;
+        }
+        for (string ans : Answer) {
             cout << "asnwer: " << ans << endl;
         }
+       
+        cout << endl;
         delete[] vec;
     }
     ///////////make classes shared pointers
@@ -1137,7 +1137,7 @@ public:
         *url = Url;
         port = new int(Port);
         model = new string;
-        Dir = new Directories();
+        Dir = make_shared<Directories>();
         *model = "";
         //model = 
         const char* command= "ollama > NUL 2>&1";
@@ -1148,7 +1148,7 @@ public:
             return;
         }
         int status = 0;
-        httpHandler = new HttpHandler(status, Dir ,Url,Port);
+        httpHandler = make_shared<HttpHandler>(status, Dir ,Url,Port);
         if (status == 0) {
             message = "Success";
             return;
@@ -1295,7 +1295,7 @@ public:
         Dir->SetCollectionDir(Collection);
         string dir = Dir->GetCurrentDir();
         string message;
-        memMap = new MemoryMap(modelVecSize, Dir, message);
+        memMap = make_shared<MemoryMap>(modelVecSize, Dir, message);
         cout << message;
 
 
@@ -1340,24 +1340,23 @@ public:
         Dir->AddFile(FilePath);
         cout << Dir->GetFileBin();
         cout << modelVecSize <<endl;
-        pdfReader = new PDFReader(Dir); 
-        pdfReader->readPDFPages(FilePath, *model ,2000);
+        pdfReader = make_shared<PDFReader>(Dir); 
+        pdfReader->readPDFPages(FilePath, *model, 2000);
 
     }
 
 private: 
-    PDFReader* pdfReader;
-    Directories* Dir;
-    HttpHandler* httpHandler;
-    MemoryMap* memMap;
-    HNSW* hnsw;
+    shared_ptr<PDFReader> pdfReader;
+    shared_ptr<Directories> Dir;
+    shared_ptr<HttpHandler> httpHandler;
+    shared_ptr<MemoryMap> memMap;
+    shared_ptr<HNSW> hnsw;
     
 
     void Cleanup() {
         delete model;
         delete port;
         delete[] url;
-        delete hnsw;
         httpHandler->~HttpHandler();
     }
 

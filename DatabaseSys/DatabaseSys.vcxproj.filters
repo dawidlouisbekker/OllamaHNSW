@@ -34,15 +34,12 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="data.txt" />
+    <Text Include="NeighbourRecords.txt" />
     <Text Include="embedding.txt">
       <Filter>Resource Files</Filter>
     </Text>
     <Text Include="vectors.txt">
       <Filter>Resource Files</Filter>
-    </Text>
-    <Text Include="CosineSimilarity.asm">
-      <Filter>Source Files</Filter>
     </Text>
     <Text Include="MistralResponse.txt" />
     <Text Include="readraw.txt" />
