@@ -43,5 +43,6 @@
     </Text>
     <Text Include="MistralResponse.txt" />
     <Text Include="readraw.txt" />
+    <Text Include="ResponseRecords.txt" />
   </ItemGroup>
 </Project>

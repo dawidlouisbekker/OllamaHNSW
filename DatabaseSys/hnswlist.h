@@ -65,14 +65,13 @@ private:
 		for (int i = 0; i < vecSize; i++) 
 		{ result += vec[i] * vec[i]; } 
 		result = std::sqrt(result); 
-		std::cout << "Computed result inside async: " << std::setprecision(50) << result << std::endl;
-		std::cout << result; return result; 
+		//std::cout << "Computed result inside async: " << std::setprecision(50) << result << std::endl;
+		; return result; 
 			}); 
 		}
 
 	float CalculateNode(float* query, int neighbourPos) { //Calculate cosine similarity aswell as organize level 0
 		__m128 result = _mm_setzero_ps();
-		cout << endl << endl;
 		auto start = std::chrono::high_resolution_clock::now();
 		int i = 0;
 		std::future<float> vec1Future = CalculateEuclideanNormsAsync(query, vecSize);
@@ -98,11 +97,11 @@ private:
 
 
 	//const std::vector<float>& query
-	std::shared_ptr<Node> searchLayer(float* query, std::shared_ptr<Node> curNode, int level) {
-		std::cout << "Searching layer " << level << " for node ID: " << curNode->id << std::endl;
+	std::shared_ptr<Node> searchLayer(float* query, std::shared_ptr<Node> curNode, int currentlevel) {
+		//std::cout << "Searching layer " << level << " for node ID: " << curNode->id << std::endl;
 
-		if (level >= curNode->neighbors.size()) {
-			std::cerr << "Error: Level " << level << " is out of range for node ID: " << curNode->id << std::endl;
+		if (currentlevel >= curNode->neighbors.size()) {
+			std::cerr << "Error: Level " << currentlevel << " is out of range for node ID: " << curNode->id << std::endl;
 			return curNode;  // If the level is invalid, return the current node
 		}
 
@@ -111,27 +110,29 @@ private:
 			improved = false;
 			float dist_to_current = 0;
 			// Iterate over all neighbors at the current level
-			for (int neighbor_id : curNode->neighbors[level]) {
+			for (int neighbor_id : curNode->neighbors[currentlevel]) {
 				if (neighbor_id < 0 || neighbor_id >= nodes.size()) {
 					std::cerr << "Invalid neighbor ID: " << neighbor_id << std::endl;
 					continue;
 				}
 				float dist_to_neighbor = CalculateNode(query, neighbor_id);   
-				cout << "Distance to level: " << level << " Node id:" << neighbor_id << endl;
+				cout << "Level: " << currentlevel << " node " << curNode->id << " Distance to node " << setprecision(0) << neighbor_id << endl;
+				cout << "result: " << setprecision(8) << dist_to_neighbor << endl;
 				if (dist_to_current == 0) {
 					dist_to_current = CalculateNode(query, curNode->id);
 				}
 				
-				if (dist_to_neighbor < dist_to_current) {
+				if (dist_to_neighbor > dist_to_current) {
 					curNode = nodes[neighbor_id]; 
+					cout << "new closest node: " << curNode->id <<endl;
 					cout << "improved " << endl;
 					improved = true;
 					break;  
 				}
-			}
+			} 
 		}
 
-		std::cout << "Found node ID: " << curNode->id << " at level " << level << std::endl;
+		std::cout << "Found node ID: " << curNode->id << " at level " << currentlevel << std::endl <<endl;;
 		return curNode;
 	}
 
@@ -267,6 +268,7 @@ public:
 		}
 	}
 
+
 	std::vector<string> searchKNN(float* query, int k) {
 		auto curNode = entry_point;
 		int CurrentHighestId = 0;
@@ -281,6 +283,7 @@ public:
 		for (int l = current_level; l >= 0; --l) {
 			cout << "Searching layer: " << current_level <<endl;
 			curNode = searchLayer(query, curNode, l);
+			cout << "new node: " << curNode->id << endl;
 		}
 	//	cout << "moving on to search heap" << endl;
 		//vector<int> ids = searchLayerWithHeap(query, curNode, 0, 1);
@@ -294,7 +297,7 @@ public:
 			cout << answers[id] << endl;
 		}*/
 	//	vector<string> answers = {"test"};
-		cout << "Getting text" << endl;
+		cout << "Getting text from node " << curNode->id << endl;
 		for (int i = 0; i < curNode->textLength; i++) {
 			cout << curNode->text[i];
 		}

@@ -1,0 +1,104 @@
+Query: AI
+
+Searching layer: 3
+Level: 3 node 0 Distance to node 2
+result: 0.48534629
+Found node ID: 0 at level 3
+
+new node: 0
+Searching layer: 3
+Level: 2 node 0 Distance to node 2
+result: 0.48534629
+Found node ID: 0 at level 2
+
+new node: 0
+Searching layer: 3
+Level: 1 node 0 Distance to node 1
+result: 0.43477836
+new closest node: 1
+improved
+Level: 1 node 1 Distance to node 0
+result: 0.44407487
+Level: 1 node 1 Distance to node 2
+result: 0.48534629
+Level: 1 node 1 Distance to node 5
+result: 0.45538422
+Found node ID: 1 at level 1
+
+new node: 1
+Searching layer: 3
+Level: 0 node 1 Distance to node 0
+result: 0.44407487
+Level: 0 node 1 Distance to node 2
+result: 0.48534629
+Level: 0 node 1 Distance to node 3
+result: 0.45047674
+Level: 0 node 1 Distance to node 4
+result: 0.42071334
+new closest node: 4
+improved
+Level: 0 node 4 Distance to node 2
+result: 0.48534629
+Level: 0 node 4 Distance to node 0
+result: 0.44407487
+Level: 0 node 4 Distance to node 1
+result: 0.43477836
+Level: 0 node 4 Distance to node 3
+result: 0.45047674
+Level: 0 node 4 Distance to node 5
+result: 0.45538422
+Found node ID: 4 at level 0
+
+
+
+
+Query: What is a firewall?
+
+Searching layer: 4
+Level: 4 node 0 Distance to node 3
+result: 0.54006833
+Found node ID: 0 at level 4
+
+new node: 0
+Searching layer: 4
+Level: 3 node 0 Distance to node 3
+result: 0.54006833
+Found node ID: 0 at level 3
+
+new node: 0
+Searching layer: 4
+Level: 2 node 0 Distance to node 3
+result: 0.54006833
+Found node ID: 0 at level 2
+
+new node: 0
+Searching layer: 4
+Level: 1 node 0 Distance to node 3
+result: 0.54006833
+Level: 1 node 0 Distance to node 4
+result: 0.47627929
+new closest node: 4
+improved
+Level: 1 node 4 Distance to node 2
+result: 0.54947662
+Level: 1 node 4 Distance to node 0
+result: 0.50112665
+Level: 1 node 4 Distance to node 1
+result: 0.56047165
+Level: 1 node 4 Distance to node 3
+result: 0.54006833
+Found node ID: 4 at level 1
+
+new node: 4
+Searching layer: 4
+Level: 0 node 4 Distance to node 2
+result: 0.54947662
+Level: 0 node 4 Distance to node 0
+result: 0.50112665
+Level: 0 node 4 Distance to node 1
+result: 0.56047165
+Level: 0 node 4 Distance to node 3
+result: 0.54006833
+Level: 0 node 4 Distance to node 5
+result: 0.50100535
+Found node ID: 4 at level 0
