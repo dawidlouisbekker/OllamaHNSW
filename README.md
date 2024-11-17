@@ -1,0 +1,1 @@
+The database files are in the debug folder. the rest are just tests. you actually only need Source.cpp and hnswlist.h
